@@ -1,3 +1,5 @@
+<center><a href="https://otterkring.github.io/MainPage" style="font-size:75%;">return to MainPage</a></center>
+
 # PS_Switch-Name
 Reverse word order of names (or any space separated string)
 
