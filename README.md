@@ -11,7 +11,7 @@ While the function is relatively small it evolved from a sudden need:
 
 The usernames in the Active Directory I work with are saved like "lastname firstname". But whenever I get a list of users from some other department, I get it as plain text "firstname lastname" list with some request like "Please give group X access to these mailboxes."
 
-Dang! While I didn't care when it was only like 4 names, recently it was a list of 12, and I just didn't want to type those names again. Of course, I did not have to completely reverse the name but also e.g. just take the last name and match it like:
+Dang! While I didn't care when it was only like 4 names, recently it was a list of 12, and I just didn't want to type those names again. Of course, I did not have to completely reverse the names but also e.g. just take the last name and match it like:
 
 `Get-Clipboard | ?{($_ -split ' +')[-1]} | %{ ... and use $_ in the filter }`
 
@@ -33,17 +33,17 @@ Hurray! Our names are reversed.
 
 ## Making it a function
 
-"Nice!" I thought. If it's that easy, why not make it a funcion? This might come in handy more often.
+"Nice!" I thought. If it's that easy, why not make it a function? This might come in handy more often.
 
 Ok, that means we need:
 * pipeline support, because we cannot assume to always get our data from the clipboard
 * error avoiding ... or error handling if you can't avoid them in advance
-* performance, because you never know, how often your function will be used
+* performance, because you never know how often your function will be used
 * people might have more names than one, so we can't just use first- and lastname. We cannot predict how the names should be ordered, so just reverse the whole word order.
 
 ### Pipeline support
 
-We only get pipeline support when using and advanced function, but we only need a small bit for our needs:
+We only get pipeline support when using and advanced function, but we only need a small bit of its capabilities for our needs:
 
 * The variable definition with pipeline support `[Parameter(ValueFromPipeline)]$Variable`
 * a `process {...}` block to work through the piped items
@@ -54,7 +54,7 @@ Hands down: I HATE error handling! It requires additional unproductive code of w
 
 Fortunately in this case we can completely omit error handling and go for avoidance, because we do not access any other systems, use precoded cmdlets, etc.
 
-First lets make sure we only get strings into our function. By predefining our parameter as `[string]` our function does that for us. It tries to make a string what is possible and breaks if it can't. Problem back at the user's hands:
+First lets make sure we only get strings into our function. By predefining our parameter as `[string]` our function does that for us. It tries to make a string of what is possible and breaks if it can't. Problem back at the user's hands:
 
     [Parameter(ValueFromPipeline)]
     [string]$Variable
@@ -72,12 +72,19 @@ However, while I only checked for empty lines bevor I now use a `-match` with th
 
 The function is so short we actually do not really need to think about performance. However, I try to always do it. Just as a habit.
 
-Our one-line above had one major performance issue whithin it simplicity: two split operations for something that could be done with only one. In the functionn we can save the result of the split operation in a variable, so only one is requires. Win! :-)
+Our one-liner above had one major performance issue whithin its simplicity: two split operations for something that could be done with only one. In the function we can save the result of the split operation in a variable, so only one is required. Win! :-)
 
 Now we have to glue all our words together in reverse order. A loop counting from the highest index of our array down to the first. I come from C, which is the primary reason why I use a for-loop instead of a `x..0 | foreach-object {}` pipe (and to avoid the pipe).
 
-For adding up the words in reverse order I use the ability of loops to return all single outputs of each iteration in one array and then join them with a single join operation afterwards. This is significantly faster than adding every single substring to the final string during each operation.
-_But again_: As long as you do not reverse half a book you propably will not notice it. But still ...
+For adding up the words in reverse order I use the ability of loops to return all single outputs of each iteration in one array and then join them with a single join operation afterwards. `.trim(' ')` does the final cleanup of trailing spaces if existing:
+
+            $Result = for ($i = $Splits.Count; $i -ge 0; $i--) {
+                $Splits[$i]
+            }
+            ($Result -join ' ').trim(' ')
+            
+Saving the output-array of the loop is significantly faster than adding every single substring to the final string during each loop iteration.<br>
+_Still_: As long as you do not reverse half a book you propably will not notice it. But still ...
 
 ### This is it
 
